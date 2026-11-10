@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сирена: учебная или настоящая?</title>
+<style>
+  :root{
+    --bg1:#eef6fb; --bg2:#e8f3ee;
+    --card:#fff; --ink:#1f3a4d; --muted:#5a7a90;
+    --accent:#3b82c4; --accent-dark:#2b6aa3;
+    --ok:#3fa87a; --ok-soft:#e2f4ec;
+    --warn:#e08b5a; --warn-soft:#fdeee2;
+    --real:#c94f4f; --real-soft:#fbe4e4;
+    --line:#cfe2ef;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:22px 14px 40px;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink); min-height:100vh;
+    display:flex; justify-content:center; align-items:flex-start;
+  }
+  #app{width:100%; max-width:720px}
+  header{margin-bottom:14px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; color:var(--muted); letter-spacing:.3px}
+  .siren{font-size:20px; display:inline-block; animation:blink 1.6s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .bar{height:8px;background:#d8e8f3;border-radius:99px;margin-top:10px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7fc4a5,#3b82c4);border-radius:99px;transition:width .4s ease}
+  .card{
+    background:var(--card); border-radius:22px; padding:26px 24px;
+    box-shadow:0 12px 34px rgba(31,58,77,.10); margin-top:16px; animation:pop .3s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h1{font-size:24px;margin:0 0 10px;line-height:1.25}
+  h2{font-size:21px;margin:0 0 12px;line-height:1.3}
+  p{line-height:1.6;margin:0 0 12px;font-size:16px}
+  .muted{color:var(--muted);font-size:14.5px}
+  .count{font-size:13px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+  .situation{
+    font-size:18.5px; line-height:1.5; font-weight:600; margin:14px 0 22px;
+    padding:18px 18px; background:#f5fafd; border-radius:16px; border-left:5px solid var(--accent);
+  }
+  .opt{
+    display:block; width:100%; text-align:left; cursor:pointer;
+    background:#f7fbfe; border:2px solid var(--line); border-radius:15px;
+    padding:15px 16px; margin-bottom:10px; font-size:15.5px; line-height:1.45;
+    color:var(--ink); font-family:inherit; transition:.18s;
+  }
+  .opt:hover{border-color:#a9cfe6;background:#f0f8fd;transform:translateY(-1px)}
+  .opt:disabled{cursor:default;transform:none}
+  .opt .tag{font-weight:700; display:block; font-size:13px; letter-spacing:.4px; margin-bottom:3px}
+  .opt.training .tag{color:var(--ok)}
+  .opt.real .tag{color:var(--real)}
+  .opt.right{border-color:var(--ok); background:var(--ok-soft)}
+  .opt.right.real{border-color:var(--real); background:var(--real-soft)}
+  .opt.wrong{border-color:var(--warn); background:var(--warn-soft)}
+  .feedback{margin-top:16px;padding:15px 16px;border-radius:14px;font-size:15px;line-height:1.6;display:none}
+  .feedback.show{display:block;animation:pop .3s ease}
+  .feedback.good{background:var(--ok-soft);border-left:5px solid var(--ok)}
+  .feedback.think{background:var(--warn-soft);border-left:5px solid var(--warn)}
+  button.primary{
+    background:var(--accent); color:#fff; border:none; border-radius:14px;
+    padding:14px 24px; font-size:16px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:.18s; margin-top:14px;
+  }
+  button.primary:hover{background:var(--accent-dark);transform:translateY(-1px)}
+  button.primary.real{background:var(--real)}
+  button.primary.real:hover{background:#a83e3e}
+  .rule-line{
+    background:#f5fafd;border-radius:12px;padding:12px 14px;margin-bottom:10px;
+    font-size:15.5px;line-height:1.5;border-left:4px solid var(--accent);
+  }
+  .rule-line b{color:var(--accent-dark)}
+  .score{
+    text-align:center;border:3px dashed #b8d8ea;border-radius:20px;
+    padding:22px 18px;margin-bottom:18px;background:linear-gradient(180deg,#fff,#f6fbfe);
+  }
+  .score .big{font-size:34px;font-weight:700;line-height:1}
+  .score .sub{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .stars{font-size:22px;letter-spacing:4px;margin:8px 0}
+  @media print{.noprint{display:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="noprint">
+    <div class="brand"><span class="siren">🔔</span> СИРЕНА: УЧЕБНАЯ ИЛИ НАСТОЯЩАЯ?</div>
+    <div class="bar"><i id="barFill"></i></div>
+  </header>
+  <div id="screen"></div>
+</div>
+
+<script>
+const CARDS = [
+  {
+    type:'training',
+    text:'Объявили тренировочную эвакуацию. Все выходят по расписанию.',
+    fb:'Верно, это учебная сирена. Репетиция. Тело всё равно может напрячься — это нормально, оно тренируется.'
+  },
+  {
+    type:'training',
+    text:'Ты лежишь в постели и вспоминаешь эвакуацию. Сердце стучит быстрее.',
+    fb:'Это учебная сирена: тело вспоминает, но опасности прямо сейчас нет. Здесь помогают дыхание 4–6 и фраза «сейчас я в безопасности».'
+  },
+  {
+    type:'real',
+    text:'Учитель говорит: «Выходим быстро, это не учения».',
+    fb:'Это настоящая сирена. Здесь не спорим и не проверяем — слушаем взрослого и идём к выходу вместе с классом.'
+  },
+  {
+    type:'training',
+    text:'В новостях пишут о ЧП в другом городе. В твоей школе всё тихо.',
+    fb:'Это учебная сирена. Новости пугают, но прямо сейчас, в твоей школе, опасности нет. Можно сказать взрослому, что тебе тревожно.'
+  },
+  {
+    type:'real',
+    text:'В коридоре запах гари, сработала пожарная сигнализация.',
+    fb:'Это настоящая сирена — действуй по плану: слушай взрослого, иди к выходу, не беги.'
+  },
+  {
+    type:'training',
+    text:'Не спится. В голове крутится «а вдруг завтра что-то случится».',
+    fb:'Это учебная сирена: мысль «а вдруг» — не предсказание. Скажи себе «это мысль, а не команда» и сделай 3 цикла дыхания.'
+  },
+  {
+    type:'training',
+    text:'Кто-то в чате пишет страшное про школу, но никто ничего не подтверждает.',
+    fb:'Это учебная сирена. В чатах много слухов. Если тревожно — скажи взрослому, которому доверяешь, но паниковать не нужно.'
+  },
+  {
+    type:'real',
+    text:'Ты в школе, слышишь громкий хлопок и видишь, что взрослые быстро ведут детей к выходу.',
+    fb:'Это настоящая сирена. Слушай взрослого, иди со всеми к выходу, не беги и не прячься в одиночку.'
+  }
+];
+
+const screen = document.getElementById('screen');
+const barFill = document.getElementById('barFill');
+let deck = [], idx = 0, correctCount = 0, answered = false;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function progress(){ barFill.style.width = Math.round((idx/CARDS.length)*100) + '%'; }
+
+function start(){
+  deck = shuffle(CARDS);
+  idx = 0; correctCount = 0;
+  progress();
+  screen.innerHTML = `
+    <div class="card">
+      <h1>Сирена бывает двух видов</h1>
+      <p>У нас в голове и в теле есть «пожарная сигнализация». Она включается, когда страшно, — даже если это <b>учебная тренировка</b>, а не настоящая опасность.</p>
+      <p>Сейчас будут карточки. На каждой — <b>две кнопки</b>:</p>
+      <div class="rule-line"><b>🔕 Учебная сирена</b> — тревога есть, но опасности прямо сейчас нет. Дыхание и фраза.</div>
+      <div class="rule-line"><b>🚨 Настоящая</b> — реальная опасность. Действую по плану: слушаю взрослого, иду к выходу.</div>
+      <p class="muted">Ошибаться можно — так и учимся. Поехали.</p>
+      <button class="primary" onclick="next()">Начать</button>
+    </div>`;
+}
+
+function next(){
+  if(idx >= deck.length){ finish(); return; }
+  answered = false;
+  progress();
+  const c = deck[idx];
+  screen.innerHTML = `
+    <div class="card">
+      <div class="count">Карточка ${idx+1} из ${deck.length}</div>
+      <div class="situation">${escapeHtml(c.text)}</div>
+      <button class="opt training" data-type="training">
+        <span class="tag">🔕 УЧЕБНАЯ СИРЕНА</span>
+        Тревога есть, но опасности прямо сейчас нет
+      </button>
+      <button class="opt real" data-type="real">
+        <span class="tag">🚨 НАСТОЯЩАЯ</span>
+        Опасность реальная — действую по плану
+      </button>
+      <div class="feedback" id="fb"></div>
+      <div id="nextBox"></div>
+    </div>`;
+
+  document.querySelectorAll('.opt').forEach(btn=>{
+    btn.onclick = ()=> choose(btn.dataset.type, c);
+  });
+}
+
+function choose(pick, c){
+  if(answered) return;
+  answered = true;
+  const isRight = pick === c.type;
+  if(isRight) correctCount++;
+
+  document.querySelectorAll('.opt').forEach(b=>{
+    b.disabled = true;
+    if(b.dataset.type === c.type) b.classList.add('right');
+    else if(b.dataset.type === pick) b.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('fb');
+  fb.className = 'feedback show ' + (isRight ? 'good' : 'think');
+  const label = c.type === 'training'
+    ? 'Верно: это учебная сирена. '
+    : 'Верно: это настоящая сирена — действуй по плану. ';
+  fb.innerHTML = (isRight ? label : 'Почти! Смотри: ') + escapeHtml(c.fb);
+
+  const nb = document.createElement('button');
+  nb.className = 'primary';
+  nb.textContent = (idx === deck.length - 1) ? 'Итог' : 'Дальше';
+  nb.onclick = ()=>{ idx++; next(); };
+  document.getElementById('nextBox').appendChild(nb);
+}
+
+function finish(){
+  progress();
+  barFill.style.width = '100%';
+  const total = deck.length;
+  const stars = correctCount >= total-1 ? '★★★' : correctCount >= total/2 ? '★★' : '★';
+  screen.innerHTML = `
+    <div class="card">
+      <div class="score">
+        <div class="stars">${stars}</div>
+        <div class="big">${correctCount} / ${total}</div>
+        <div class="sub">так ты отличила учебную сирену от настоящей</div>
+      </div>
+
+      <h2>Правило трёх вопросов</h2>
+      <p>Когда страшно — спроси себя:</p>
+      <div class="rule-line"><b>1.</b> Это происходит <b>прямо сейчас и здесь</b>?</div>
+      <div class="rule-line"><b>2.</b> Взрослый говорит, что это <b>не учения</b>?</div>
+      <div class="rule-line"><b>3.</b> Есть <b>реальная опасность рядом</b>?</div>
+      <p>Если на все три «нет» — это <b>учебная сирена</b>. Тогда: дыхание <b>4–6</b> × 3 цикла и фраза «сейчас я в безопасности».</p>
+      <p>Если хоть на один «да» — это <b>настоящая</b>: слушаю взрослого, иду к выходу, не бегу.</p>
+
+      <p class="muted" style="margin-top:14px">Твоя сирена умеет воеть и на тренировке. Это не поломка. Это просто чувствительная сигнализация — её можно научиться различать.</p>
+
+      <div class="noprint" style="margin-top:16px">
+        <button class="primary" onclick="start()">Сыграть ещё раз</button>
+      </div>
+    </div>`;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+start();
+</script>
+</body>
+</html>
